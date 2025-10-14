@@ -18,7 +18,7 @@ if "brochure" not in st.session_state:
 if "last_url" not in st.session_state:
     st.session_state.last_url = None
 
-# Custom CSS
+# Custom CSS - Simple styling
 st.markdown(
     """
     <style>
@@ -32,61 +32,6 @@ st.markdown(
         text-align: center;
         color: #666;
         margin-bottom: 2rem;
-    }
-    /* Enhanced markdown styling for brochure display */
-    .stMarkdown h1 {
-        color: #2c3e50;
-        border-bottom: 3px solid #3498db;
-        padding-bottom: 10px;
-        margin-top: 20px;
-    }
-    .stMarkdown h2 {
-        color: #34495e;
-        border-bottom: 2px solid #95a5a6;
-        padding-bottom: 5px;
-        margin-top: 18px;
-    }
-    .stMarkdown h3 {
-        color: #555;
-        margin-top: 15px;
-    }
-    .stMarkdown p {
-        line-height: 1.6;
-        margin: 10px 0;
-    }
-    .stMarkdown ul, .stMarkdown ol {
-        margin: 10px 0;
-        padding-left: 30px;
-    }
-    .stMarkdown li {
-        margin: 5px 0;
-    }
-    .stMarkdown a {
-        color: #3498db;
-        text-decoration: none;
-    }
-    .stMarkdown a:hover {
-        text-decoration: underline;
-    }
-    .stMarkdown code {
-        background-color: #f4f4f4;
-        padding: 2px 5px;
-        border-radius: 3px;
-        font-family: 'Courier New', monospace;
-    }
-    .stMarkdown pre {
-        background-color: #f4f4f4;
-        padding: 10px;
-        border-radius: 5px;
-        border-left: 4px solid #3498db;
-        overflow-x: auto;
-    }
-    .stMarkdown blockquote {
-        border-left: 4px solid #3498db;
-        padding-left: 15px;
-        margin: 15px 0;
-        color: #555;
-        font-style: italic;
     }
     </style>
 """,
@@ -135,10 +80,10 @@ with st.sidebar:
     - Generation may take 30-60 seconds
     """)
 
-    # if not PDF_AVAILABLE:
-    #     st.divider()
-    #     st.warning("⚠️ PDF export not available")
-    #     st.caption("Install with: `pip install xhtml2pdf`")
+    if not PDF_AVAILABLE:
+        st.divider()
+        st.warning("⚠️ PDF export not available")
+        st.caption("Install with: `pip install reportlab markdown2`")
 
 # Main content
 st.header("🌐 Enter Website URL")
@@ -198,10 +143,8 @@ if st.session_state.brochure:
     st.divider()
     st.header("📄 Generated Brochure")
 
-    # Display formatted markdown with proper rendering
-    # Use a container with custom CSS for better markdown display
-    with st.container():
-        st.markdown(brochure, unsafe_allow_html=True)
+    # Display formatted markdown - simple clean rendering
+    st.markdown(brochure)
 
     # Download options
     st.divider()
@@ -237,7 +180,7 @@ if st.session_state.brochure:
                 )
         else:
             st.info("📄 PDF export not available")
-            st.caption("Install with: `pip install xhtml2pdf`")
+            st.caption("Install with: `pip install reportlab markdown2`")
 
 # Footer
 st.divider()

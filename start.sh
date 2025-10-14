@@ -34,16 +34,16 @@ echo -e "${GREEN}✓${NC} Using $PYTHON_VERSION"
 echo -e "${GREEN}✓${NC} Checking dependencies..."
 pip install -q -r requirements.txt
 
-# Check if xhtml2pdf is installed
-if python -c "import xhtml2pdf" 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} PDF export available (xhtml2pdf installed)"
+# Check if PDF libraries are installed
+if python -c "from reportlab.lib.pagesizes import A4; import markdown2" 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} PDF export available (ReportLab + markdown2 installed)"
 else
-    echo -e "${YELLOW}⚠️  PDF export not available. Installing xhtml2pdf...${NC}"
-    pip install -q xhtml2pdf
+    echo -e "${YELLOW}⚠️  PDF export not available. Installing PDF libraries...${NC}"
+    pip install -q reportlab markdown2
     if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✓${NC} xhtml2pdf installed successfully"
+        echo -e "${GREEN}✓${NC} PDF libraries installed successfully"
     else
-        echo -e "${RED}✗${NC} Failed to install xhtml2pdf. PDF export will be disabled."
+        echo -e "${RED}✗${NC} Failed to install PDF libraries. PDF export will be disabled."
     fi
 fi
 

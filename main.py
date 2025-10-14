@@ -10,7 +10,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from utils import create_brochure
 from io import BytesIO
-import markdown
+import re
 
 # Load environment variables
 load_dotenv()
@@ -20,9 +20,16 @@ SYSTEM_PROMPT = """You are a professional marketing copywriter that creates deta
 engaging company brochures based on website content. Your brochures are well-structured, 
 informative, and highlight the company's key strengths and offerings."""
 
-# Check if xhtml2pdf is available
+# Check if ReportLab is available
 try:
-    from xhtml2pdf import pisa
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+    from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
+    from reportlab.lib.colors import HexColor
+    import markdown2
+
     PDF_AVAILABLE = True
 except ImportError:
     PDF_AVAILABLE = False
@@ -117,7 +124,7 @@ def generate_brochure(website_url: str, api_key: str = None) -> str:
 
 def markdown_to_pdf(markdown_text: str) -> BytesIO:
     """
-    Convert markdown text to PDF.
+    Convert markdown text to PDF using ReportLab.
 
     Args:
         markdown_text (str): Markdown formatted text
@@ -126,119 +133,140 @@ def markdown_to_pdf(markdown_text: str) -> BytesIO:
         BytesIO: PDF file as bytes
 
     Raises:
-        ImportError: If xhtml2pdf is not installed
+        ImportError: If reportlab or markdown2 is not installed
         Exception: If PDF generation fails
     """
     if not PDF_AVAILABLE:
-        raise ImportError("xhtml2pdf is not installed. Run: pip install xhtml2pdf")
+        raise ImportError(
+            "PDF libraries not installed. Run: pip install reportlab markdown2"
+        )
 
-    # Convert markdown to HTML
-    html = markdown.markdown(
-        markdown_text, extensions=["extra", "codehilite", "tables", "toc"]
+    # Create PDF buffer
+    pdf_buffer = BytesIO()
+
+    # Create PDF document
+    doc = SimpleDocTemplate(
+        pdf_buffer,
+        pagesize=A4,
+        rightMargin=72,
+        leftMargin=72,
+        topMargin=72,
+        bottomMargin=72,
     )
 
-    # Add CSS styling for better PDF appearance
-    styled_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            @page {{
-                size: A4;
-                margin: 2cm;
-            }}
-            body {{
-                font-family: Arial, Helvetica, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                font-size: 11pt;
-            }}
-            h1 {{
-                color: #2c3e50;
-                font-size: 24pt;
-                border-bottom: 3px solid #3498db;
-                padding-bottom: 10px;
-                margin-top: 20px;
-            }}
-            h2 {{
-                color: #34495e;
-                font-size: 18pt;
-                margin-top: 18px;
-                border-bottom: 2px solid #95a5a6;
-                padding-bottom: 5px;
-            }}
-            h3 {{
-                color: #555;
-                font-size: 14pt;
-                margin-top: 15px;
-            }}
-            p {{
-                margin: 10px 0;
-                text-align: justify;
-            }}
-            ul, ol {{
-                margin: 10px 0;
-                padding-left: 30px;
-            }}
-            li {{
-                margin: 5px 0;
-            }}
-            code {{
-                background-color: #f4f4f4;
-                padding: 2px 5px;
-                border-radius: 3px;
-                font-family: 'Courier New', monospace;
-            }}
-            pre {{
-                background-color: #f4f4f4;
-                padding: 10px;
-                border-radius: 5px;
-                border-left: 4px solid #3498db;
-                overflow-x: auto;
-            }}
-            blockquote {{
-                border-left: 4px solid #3498db;
-                padding-left: 15px;
-                margin: 15px 0;
-                color: #555;
-                font-style: italic;
-            }}
-            table {{
-                border-collapse: collapse;
-                width: 100%;
-                margin: 15px 0;
-            }}
-            th, td {{
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-            }}
-            th {{
-                background-color: #3498db;
-                color: white;
-            }}
-            a {{
-                color: #3498db;
-                text-decoration: none;
-            }}
-        </style>
-    </head>
-    <body>
-        {html}
-    </body>
-    </html>
-    """
+    # Container for the 'Flowable' objects
+    story = []
 
-    # Convert HTML to PDF
-    pdf_buffer = BytesIO()
-    pisa_status = pisa.CreatePDF(BytesIO(styled_html.encode("utf-8")), dest=pdf_buffer)
+    # Define styles
+    styles = getSampleStyleSheet()
 
-    if pisa_status.err:
-        raise Exception("PDF generation failed")
+    # Custom styles
+    title_style = ParagraphStyle(
+        "CustomTitle",
+        parent=styles["Heading1"],
+        fontSize=24,
+        textColor=HexColor("#2c3e50"),
+        spaceAfter=30,
+        spaceBefore=20,
+        alignment=TA_LEFT,
+    )
 
-    pdf_buffer.seek(0)
-    return pdf_buffer
+    heading1_style = ParagraphStyle(
+        "CustomHeading1",
+        parent=styles["Heading1"],
+        fontSize=18,
+        textColor=HexColor("#34495e"),
+        spaceAfter=12,
+        spaceBefore=12,
+        borderColor=HexColor("#95a5a6"),
+        borderWidth=1,
+        borderPadding=5,
+    )
+
+    heading2_style = ParagraphStyle(
+        "CustomHeading2",
+        parent=styles["Heading2"],
+        fontSize=14,
+        textColor=HexColor("#555555"),
+        spaceAfter=10,
+        spaceBefore=10,
+    )
+
+    body_style = ParagraphStyle(
+        "CustomBody",
+        parent=styles["BodyText"],
+        fontSize=11,
+        alignment=TA_JUSTIFY,
+        spaceAfter=12,
+        leading=16,
+    )
+
+    # Process markdown line by line
+    lines = markdown_text.split("\n")
+    i = 0
+
+    while i < len(lines):
+        line = lines[i].strip()
+
+        if not line:
+            story.append(Spacer(1, 0.1 * inch))
+            i += 1
+            continue
+
+        # Handle headers
+        if line.startswith("# "):
+            text = line[2:].strip()
+            # Remove markdown links
+            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+            story.append(Paragraph(text, title_style))
+            story.append(Spacer(1, 0.2 * inch))
+
+        elif line.startswith("## "):
+            text = line[3:].strip()
+            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+            story.append(Paragraph(text, heading1_style))
+            story.append(Spacer(1, 0.15 * inch))
+
+        elif line.startswith("### "):
+            text = line[4:].strip()
+            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+            story.append(Paragraph(text, heading2_style))
+            story.append(Spacer(1, 0.1 * inch))
+
+        # Handle bullet points
+        elif line.startswith("* ") or line.startswith("- "):
+            text = line[2:].strip()
+            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+            # Make bold text
+            text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
+            text = re.sub(r"`([^`]+)`", r'<font face="Courier">\1</font>', text)
+            story.append(Paragraph(f"• {text}", body_style))
+
+        # Handle regular paragraphs
+        else:
+            text = line
+            # Remove markdown links but keep text
+            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+            # Make bold text
+            text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
+            # Make italic text
+            text = re.sub(r"\*([^*]+)\*", r"<i>\1</i>", text)
+            # Handle inline code
+            text = re.sub(r"`([^`]+)`", r'<font face="Courier">\1</font>', text)
+
+            if text:
+                story.append(Paragraph(text, body_style))
+                story.append(Spacer(1, 0.05 * inch))
+
+        i += 1
+
+    # Build PDF
+    try:
+        doc.build(story)
+        pdf_buffer.seek(0)
+        return pdf_buffer
+    except Exception as e:
+        raise Exception(f"PDF generation failed: {str(e)}")
 
 
 def main():

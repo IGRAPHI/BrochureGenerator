@@ -2,32 +2,40 @@
 
 ## Overview
 
-The Streamlit web app now supports downloading generated brochures in **PDF format** in addition to Markdown format.
+The Streamlit web app supports downloading generated brochures in **PDF format** in addition to Markdown format, using the professional **ReportLab** library.
 
 ## Features
 
 ### Professional PDF Styling
-- A4 page size with proper margins (2cm)
+
+- A4 page size with proper margins (72 points / ~2.5cm)
 - Professional typography (Arial/Helvetica font family)
 - Color-coded headings:
-  - H1: Dark blue with bottom border
-  - H2: Gray with lighter border
-  - H3: Medium gray
+  - H1 (Title): Dark blue (#2c3e50), 24pt
+  - H2: Gray blue (#34495e), 18pt with border
+  - H3: Medium gray (#555), 14pt
 - Styled elements:
-  - Code blocks with gray background
-  - Blockquotes with blue left border
-  - Tables with headers
-  - Proper spacing and alignment
+  - Bullet points with proper indentation
+  - Bold and italic text support
+  - Inline code formatting
+  - Justified text alignment
+  - Proper spacing between elements
 
 ### How It Works
 
-1. **Markdown to HTML**: Converts markdown using Python's `markdown` library with extensions:
-   - `extra`: Additional markdown features
-   - `codehilite`: Code syntax highlighting
-   - `tables`: Table support
-   - `toc`: Table of contents
+1. **Markdown Parsing**: Processes markdown text line by line using Python's `re` module
 
-2. **HTML to PDF**: Uses `xhtml2pdf` (pisa) to convert styled HTML to PDF
+   - Identifies headers (H1, H2, H3)
+   - Handles bullet points and lists
+   - Processes inline formatting (bold, italic, code)
+   - Removes markdown link syntax while preserving text
+
+2. **PDF Generation**: Uses **ReportLab** to create professional PDFs
+
+   - `reportlab`: Industry-standard PDF generation library
+   - Custom paragraph styles for each element type
+   - Professional color scheme with HexColor
+   - Proper text flow and page breaks
 
 3. **Download**: Streamlit serves the PDF as a downloadable file
 
@@ -46,61 +54,66 @@ The Streamlit web app now supports downloading generated brochures in **PDF form
 If you want to generate PDFs programmatically:
 
 ```python
-from io import BytesIO
-import markdown
-from xhtml2pdf import pisa
+from main import markdown_to_pdf
 
-def markdown_to_pdf(markdown_text: str) -> BytesIO:
-    """Convert markdown to PDF."""
-    # Convert to HTML
-    html = markdown.markdown(
-        markdown_text,
-        extensions=['extra', 'codehilite', 'tables', 'toc']
-    )
-    
-    # Add CSS styling (see app.py for full CSS)
-    styled_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <style>
-            /* Your CSS here */
-        </style>
-    </head>
-    <body>{html}</body>
-    </html>
-    """
-    
-    # Convert to PDF
+# Generate PDF from markdown text
+brochure_markdown = "# Company Brochure\n\n## About Us\n\nWe are awesome!"
+pdf_buffer = markdown_to_pdf(brochure_markdown)
+
+# Save to file
+with open("brochure.pdf", "wb") as f:
+    f.write(pdf_buffer.getvalue())
+
+# Or use in memory
+pdf_bytes = pdf_buffer.getvalue()
+```
+
+### Custom PDF Generation
+
+For more control over PDF generation:
+
+```python
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.units import inch
+from io import BytesIO
+
+def custom_pdf(text):
     pdf_buffer = BytesIO()
-    pisa.CreatePDF(
-        BytesIO(styled_html.encode('utf-8')),
-        dest=pdf_buffer
-    )
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=A4)
+
+    # Create content
+    story = []
+    styles = getSampleStyleSheet()
+
+    # Add paragraphs
+    story.append(Paragraph(text, styles['Normal']))
+    story.append(Spacer(1, 0.2*inch))
+
+    # Build PDF
+    doc.build(story)
     pdf_buffer.seek(0)
     return pdf_buffer
-
-# Usage
-pdf_bytes = markdown_to_pdf(brochure_markdown)
-with open("brochure.pdf", "wb") as f:
-    f.write(pdf_bytes.getvalue())
 ```
 
 ## Dependencies
 
-New packages required:
+Required packages:
+
 ```
-markdown==3.5.1      # Markdown to HTML conversion
-xhtml2pdf==0.2.13    # HTML to PDF conversion
+reportlab>=3.6.0     # Professional PDF generation
+markdown2>=2.4.0     # Markdown parsing
 ```
 
 Install with:
+
 ```bash
 pip install markdown xhtml2pdf
 ```
 
 Or use the updated `requirements.txt`:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -114,6 +127,7 @@ python test_pdf.py
 ```
 
 Expected output:
+
 ```
 🧪 Testing PDF generation...
 ============================================================
@@ -132,12 +146,15 @@ Expected output:
 **Error**: `PDF generation failed`
 
 **Solutions**:
+
 1. Check dependencies are installed:
+
    ```bash
    pip list | grep -E "markdown|xhtml2pdf"
    ```
 
 2. Reinstall dependencies:
+
    ```bash
    pip install --upgrade markdown xhtml2pdf
    ```
@@ -149,6 +166,7 @@ Expected output:
 **Cause**: CSS not being applied or HTML parsing issues
 
 **Solutions**:
+
 1. Check markdown format is valid
 2. Verify HTML conversion (check intermediate HTML)
 3. Simplify CSS if needed
@@ -157,7 +175,8 @@ Expected output:
 
 **Cause**: Encoding issues
 
-**Solution**: 
+**Solution**:
+
 - Ensure UTF-8 encoding: `styled_html.encode('utf-8')`
 - Add charset meta tag: `<meta charset="utf-8">`
 
@@ -166,6 +185,7 @@ Expected output:
 **Note**: `xhtml2pdf` has limited image support
 
 **Workaround**:
+
 - Use base64 embedded images
 - Or use alternative PDF library like `weasyprint`
 
@@ -174,30 +194,36 @@ Expected output:
 If you need more features, consider:
 
 ### WeasyPrint (More powerful)
+
 ```bash
 pip install weasyprint
 ```
 
 Pros:
+
 - Better CSS support
 - Better image handling
 - Modern HTML/CSS standards
 
 Cons:
+
 - Requires external dependencies (Cairo, Pango)
 - Larger installation
 
 ### ReportLab (Low-level)
+
 ```bash
 pip install reportlab
 ```
 
 Pros:
+
 - Full control over PDF layout
 - No HTML needed
 - Fast
 
 Cons:
+
 - More complex API
 - Need to build layout programmatically
 
@@ -211,7 +237,7 @@ Edit the CSS in `app.py` function `markdown_to_pdf()`:
 styled_html = f"""
 <style>
     /* Modify these styles */
-    h1 {{ 
+    h1 {{
         color: #your-color;
         font-size: 24pt;
     }}

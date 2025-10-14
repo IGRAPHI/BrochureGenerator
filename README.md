@@ -97,8 +97,8 @@ pip install -r requirements.txt
 - `lxml` - Parser for BeautifulSoup
 - `python-dotenv` - Environment variable management
 - `streamlit` - Web UI framework
-- `markdown` - Markdown to HTML conversion
-- `xhtml2pdf` - PDF generation from HTML
+- `reportlab` - Professional PDF generation library
+- `markdown2` - Markdown parsing for PDF conversion
 - `ipython` - For Jupyter notebook support
 
 ### Step 4: Configure API Key
@@ -730,15 +730,15 @@ Utilities (utils.py)
 
 ### Common Issues and Solutions
 
-#### 1. **PDF Download Not Working / "ModuleNotFoundError: xhtml2pdf"**
+#### 1. **PDF Download Not Working / Module Errors**
 
 **Error Message:**
 
 ```
-ModuleNotFoundError: No module named 'xhtml2pdf'
+ModuleNotFoundError: No module named 'reportlab'
 ```
 
-**Cause:** The PDF generation library isn't installed or Streamlit is running from the wrong Python environment.
+**Cause:** The PDF generation libraries aren't installed or Streamlit is running from the wrong Python environment.
 
 **Solutions:**
 
@@ -756,11 +756,11 @@ ModuleNotFoundError: No module named 'xhtml2pdf'
 source venv/bin/activate  # macOS/Linux
 venv\Scripts\activate     # Windows
 
-# Install the PDF library
-pip install xhtml2pdf
+# Install the PDF libraries
+pip install reportlab markdown2
 
-# Verify it's installed
-python -c "from xhtml2pdf import pisa; print('✅ PDF support ready!')"
+# Verify they're installed
+python -c "from reportlab.lib.pagesizes import A4; import markdown2; print('✅ PDF support ready!')"
 
 # Now run Streamlit from the same environment
 streamlit run app.py
@@ -769,11 +769,11 @@ streamlit run app.py
 **💡 Why This Happens:**
 
 - You might have multiple Python installations
-- Streamlit might be running from a different environment than where xhtml2pdf is installed
+- Streamlit might be running from a different environment than where libraries are installed
 - The virtual environment wasn't activated before running Streamlit
 
 **📚 Detailed Troubleshooting:**
-See [TROUBLESHOOTING_PDF.md](TROUBLESHOOTING_PDF.md) for comprehensive solutions.
+See [TROUBLESHOOTING_PDF.md](docs/TROUBLESHOOTING_PDF.md) for comprehensive solutions.
 
 ---
 

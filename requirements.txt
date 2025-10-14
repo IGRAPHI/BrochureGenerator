@@ -5,4 +5,5 @@ lxml
 python-dotenv
 streamlit
 markdown
-xhtml2pdf
+reportlab
+markdown2
