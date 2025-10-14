@@ -1,2 +1,9 @@
 .env
 __pycache__/
+PDF_FEATURES.md
+venv/
+*.pyc
+.DS_Store
+PDF_IMPLEMENTATION.md
+TROUBLESHOOTING.md
+test_pdf.py

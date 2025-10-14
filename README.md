@@ -19,6 +19,15 @@ An intelligent application that automatically generates professional company bro
 - **For Investors**: Highlight company vision, products, and market positioning
 - **For Recruitment**: Present company culture, mission, and career opportunities
 
+## ✨ Key Features
+
+- 🤖 **AI-Powered Analysis**: Uses Google Gemini 2.0 Flash for intelligent content extraction
+- 🔗 **Smart Link Classification**: Automatically identifies relevant pages (About, Products, Careers, etc.)
+- 📄 **PDF Export**: Generate professional PDF brochures with custom styling
+- 🎨 **Multiple Formats**: Export as Markdown or PDF
+- 🌐 **Web & CLI Interface**: Choose your preferred interaction mode
+- 🔒 **Privacy-Focused**: All processing done locally with your API key
+
 ---
 
 ## 📋 Prerequisites
@@ -88,6 +97,8 @@ pip install -r requirements.txt
 - `lxml` - Parser for BeautifulSoup
 - `python-dotenv` - Environment variable management
 - `streamlit` - Web UI framework
+- `markdown` - Markdown to HTML conversion
+- `xhtml2pdf` - PDF generation from HTML
 - `ipython` - For Jupyter notebook support
 
 ### Step 4: Configure API Key
@@ -163,13 +174,40 @@ streamlit run app.py
 
 The app will automatically open in your default browser at `http://localhost:8501`
 
+**🎉 Quick Start (Recommended):**
+
+For the smoothest experience with all features including PDF generation, use our startup script:
+
+```bash
+# Make the script executable (first time only)
+chmod +x start.sh
+
+# Run the app with proper environment setup
+./start.sh
+```
+
+The script will:
+- ✅ Check/create virtual environment
+- ✅ Activate the environment automatically
+- ✅ Install all required dependencies
+- ✅ Verify PDF generation support
+- ✅ Launch Streamlit with correct configuration
+
 **Using the Web UI:**
 
 1. Enter a company website URL (e.g., `https://www.anthropic.com`)
 2. Click "🚀 Generate Brochure"
 3. Wait for the AI to analyze and generate the brochure (30-60 seconds)
-4. View the formatted brochure
-5. Download as Markdown file if needed
+4. View the beautifully formatted brochure with professional styling
+5. Download the brochure:
+   - **⬇️ Download as Markdown (.md)**: Original markdown format
+   - **⬇️ Download as PDF (.pdf)**: Professional PDF document with A4 formatting, color-coded headings, and clean typography
+
+**✨ Features:**
+- 🔄 **Persistent Display**: Generated brochure stays visible after downloading - no need to regenerate!
+- 💾 **Session State**: Content is preserved until you enter a new URL
+- 📥 **Multiple Downloads**: Download as many times as you want without regenerating
+- 🔀 **Smart Refresh**: Only clears content when you change the URL
 
 ### Option 2: Command Line Interface (CLI) 💻
 
@@ -216,18 +254,45 @@ Then run the cells sequentially to:
 
 ```
 AI-Powered-CBG/
-├── src/
-│   ├── website.py      # Website content extraction class
-│   ├── utils.py        # Helper functions (link extraction, aggregation)
-│   ├── main.py         # CLI interface
-│   ├── app.py          # Streamlit web interface
-│   └── README.md       # Source code documentation
-├── demo.ipynb          # Jupyter notebook for experimentation
+├── website.py      # Website content extraction class
+├── utils.py        # Helper functions (link extraction, aggregation)
+├── main.py         # Core business logic + CLI interface (does heavy lifting)
+├── app.py          # Streamlit web interface (imports from main.py)
+├── docs/
+│   ├── PDF_FEATURE.md                  # PDF generation feature documentation
+│   ├── PDF_IMPLEMENTATION_SUMMARY.md   # Technical implementation details
+│   ├── TROUBLESHOOTING_PDF.md          # PDF troubleshooting guide
+│   └── WEBSITE_COMPATIBILITY.md        # Website compatibility guide
 ├── requirements.txt    # Python dependencies
-├── .env.example        # Environment variables template
-├── .env               # Your API keys (create this, not in git)
-└── README.md          # This file
+├── start.sh           # Quick startup script (recommended)
+├── .env.example       # Environment variables template
+├── .env              # Your API keys (create this, not in git)
+└── README.md         # This file
 ```
+
+### 🏗️ Architecture Overview
+
+The project follows the **DRY (Don't Repeat Yourself)** principle:
+
+- **`main.py`**: Contains all core business logic and reusable functions
+  - `generate_brochure()` - Main brochure generation function
+  - `markdown_to_pdf()` - PDF conversion logic
+  - `get_api_key()`, `configure_genai()`, `get_model()` - Configuration helpers
+  - CLI interface for command-line usage
+- **`app.py`**: Lightweight Streamlit UI that imports from `main.py`
+
+  - No duplicate code
+  - Focuses only on UI/UX concerns
+  - Calls `main.py` functions for all business logic
+
+- **`utils.py`**: Website-specific utilities
+
+  - `get_links()` - AI-powered link classification
+  - `website_content_all()` - Content aggregation
+  - `create_brochure()` - Brochure generation pipeline
+
+- **`website.py`**: Website scraping and parsing
+  - `Website` class for content extraction
 
 ---
 
@@ -258,11 +323,101 @@ Expected output:
 
 ## 📖 Source Code Documentation
 
-This directory contains the source code for the AI-Powered Company Brochure Generator.
+### 📁 Module Overview
 
-## 📁 Module Overview
+#### `main.py` - Core Business Logic (Heavy Lifting)
 
-### `website.py`
+**Purpose**: Central module containing all core business logic and reusable functions. Both CLI and Streamlit app import from this module.
+
+**Key Functions**:
+
+##### `generate_brochure(website_url: str, api_key: str = None) -> str`
+
+The main function for generating company brochures. Used by both CLI and Streamlit app.
+
+```python
+from main import generate_brochure
+
+brochure = generate_brochure("https://www.example.com")
+print(brochure)
+```
+
+##### `markdown_to_pdf(markdown_text: str) -> BytesIO`
+
+Converts markdown text to professionally styled PDF with A4 format and custom CSS.
+
+```python
+from main import markdown_to_pdf
+
+pdf_buffer = markdown_to_pdf(brochure_text)
+with open("output.pdf", "wb") as f:
+    f.write(pdf_buffer.getvalue())
+```
+
+##### Helper Functions
+
+- `get_api_key()` - Retrieves API key from environment
+- `configure_genai(api_key)` - Configures Gemini AI
+- `get_model(system_instruction)` - Returns configured Gemini model
+- `normalize_url(url)` - Ensures URL has proper protocol
+
+**CLI Usage**:
+
+```bash
+# Interactive mode
+python main.py
+
+# Command-line mode
+python main.py https://www.example.com
+```
+
+---
+
+#### `app.py` - Streamlit Web Interface (Lightweight)
+
+**Purpose**: Provides web UI for interactive brochure generation. Imports all business logic from `main.py`.
+
+**Architecture**: Follows separation of concerns
+
+- UI rendering and user interactions only
+- All business logic delegated to `main.py`
+- No code duplication
+- Uses Streamlit session state for persistent display
+
+**Key Features**:
+
+- 🔄 **Session State Management**: Brochure persists after downloads
+- 💾 **Smart Caching**: Content stays visible until URL changes
+- 📥 **Multiple Downloads**: No need to regenerate for each download
+- 🔀 **Auto-Clear**: Automatically clears when entering a new URL
+
+**Imported Functions**:
+
+```python
+from main import (
+    get_api_key,
+    generate_brochure,
+    markdown_to_pdf,
+    PDF_AVAILABLE
+)
+```
+
+**Session State Variables**:
+
+```python
+st.session_state.brochure      # Stores generated brochure
+st.session_state.last_url      # Tracks current URL
+```
+
+**Usage**:
+
+```bash
+streamlit run app.py
+```
+
+---
+
+#### `website.py`
 
 **Purpose**: Website content extraction and parsing
 
@@ -296,9 +451,9 @@ print(site.links)           # List of all links
 
 ---
 
-### `utils.py`
+#### `utils.py`
 
-**Purpose**: Helper functions for link classification and brochure generation
+**Purpose**: Website-specific helper functions for link classification and brochure generation
 
 **Functions**:
 
@@ -379,67 +534,29 @@ print(brochure)
 
 ---
 
-### `main.py`
+#### `create_brochure(website_url: str, model_brochure) -> str`
 
-**Purpose**: Command-line interface for brochure generation
+Complete pipeline for generating a professional brochure. Called by `main.generate_brochure()`.
 
-**Features**:
+**Parameters**:
 
-- Interactive and command-line argument modes
-- Automatic URL protocol handling
-- Save to file option
-- Environment variable validation
-- Error handling and user-friendly messages
+- `website_url`: Company website URL
+- `model_brochure`: Gemini model with system instructions
 
-**Usage**:
+**Returns**: Formatted markdown brochure
 
-**Command-line mode**:
+**Example**:
 
-```bash
-python main.py https://www.example.com
+```python
+from utils import create_brochure
+import google.generativeai as genai
+
+genai.configure(api_key="your_key")
+model = genai.GenerativeModel("gemini-2.0-flash-exp")
+
+brochure = create_brochure("https://www.example.com", model)
+print(brochure)
 ```
-
-**Interactive mode**:
-
-```bash
-python main.py
-# Then enter URL when prompted
-```
-
-**Environment Variables**:
-
-- `GENAI_API_KEY`: Google Gemini API key (required)
-
----
-
-### `app.py`
-
-**Purpose**: Streamlit web interface for interactive brochure generation
-
-**Features**:
-
-- Modern, responsive UI with custom CSS
-- API key management (`.env` or manual input)
-- Progress indicators during generation
-- Dual view: formatted markdown and raw code
-- Download button for generated brochures
-- Helpful sidebar with configuration and tips
-
-**Usage**:
-
-```bash
-streamlit run app.py
-```
-
-Then open `http://localhost:8501` in your browser.
-
-**UI Components**:
-
-- URL input field with validation
-- Generate button with loading states
-- Tabbed output view (Formatted/Raw)
-- Download button (markdown format)
-- Sidebar configuration and help
 
 ---
 
@@ -455,9 +572,26 @@ GENAI_API_KEY=your_google_gemini_api_key
 
 ### Model Configuration
 
-The application uses two Gemini model instances:
+The application uses Gemini models configured in `main.py`:
 
-1. **Link Extraction Model** (JSON output):
+**System Prompt** (defined in `main.py` as `SYSTEM_PROMPT`):
+
+```python
+SYSTEM_PROMPT = """You are a professional marketing copywriter that creates detailed,
+engaging company brochures based on website content. Your brochures are well-structured,
+informative, and highlight the company's key strengths and offerings."""
+```
+
+**Model Instance** (created by `get_model()` function):
+
+```python
+model = genai.GenerativeModel(
+    model_name="gemini-2.0-flash-exp",
+    system_instruction=SYSTEM_PROMPT
+)
+```
+
+**Link Extraction Model** (configured in `utils.py`):
 
 ```python
 generation_config = {
@@ -469,41 +603,40 @@ model = genai.GenerativeModel(
 )
 ```
 
-2. **Brochure Generation Model** (with system instructions):
-
-```python
-system_prompt = """You are a professional marketing copywriter..."""
-model = genai.GenerativeModel(
-    model_name="gemini-2.0-flash-exp",
-    system_instruction=system_prompt
-)
-```
-
 ---
 
 ## 🧪 Testing
 
-### Quick Test
+### Quick Test - CLI
+
+```bash
+# Test brochure generation
+python main.py https://www.anthropic.com
+```
+
+### Quick Test - Programmatic
 
 ```python
+# Test main.py functions
+from main import generate_brochure, get_api_key
+
+api_key = get_api_key()
+brochure = generate_brochure("https://www.python.org", api_key)
+print(f"✓ Generated {len(brochure)} characters")
+
 # Test Website extraction
 from website import Website
 site = Website("https://www.python.org")
 assert site.title is not None
 assert len(site.links) > 0
 print("✓ Website class working")
+```
 
-# Test end-to-end
-from utils import create_brochure
-import google.generativeai as genai
-import os
+### Quick Test - Streamlit
 
-genai.configure(api_key=os.getenv("GENAI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.0-flash-exp")
-
-brochure = create_brochure("https://www.python.org", model)
-assert len(brochure) > 100
-print("✓ Brochure generation working")
+```bash
+# Launch Streamlit and test in browser
+streamlit run app.py
 ```
 
 ---
@@ -512,27 +645,32 @@ print("✓ Brochure generation working")
 
 ### Common Issues
 
-**1. `AttributeError: 'Website' object has no attribute 'links'`**
+**1. Import errors from main.py**
+
+- **Cause**: `app.py` cannot find functions from `main.py`
+- **Fix**: Ensure both files are in the same directory and run from project root
+
+**2. `AttributeError: 'Website' object has no attribute 'links'`**
 
 - **Cause**: `links` not initialized before use
 - **Fix**: Already handled in `Website.__init__()` with `self.links = []`
 
-**2. `AttributeError: 'list' object has no attribute 'links'`**
+**3. `AttributeError: 'list' object has no attribute 'links'`**
 
 - **Cause**: Passing `website.links` instead of `website` to functions
 - **Fix**: Pass the entire `Website` object: `get_links(website, model)`
 
-**3. `JSONDecodeError`**
+**4. `JSONDecodeError`**
 
 - **Cause**: LLM response not valid JSON
 - **Fix**: Handled with try-except, returns `{"links": []}`
 
-**4. `GENAI_API_KEY not found`**
+**5. `GENAI_API_KEY not found`**
 
 - **Cause**: Missing `.env` file or API key
 - **Fix**: Create `.env` file with valid API key
 
-**5. Request timeout**
+**6. Request timeout**
 
 - **Cause**: Slow website response
 - **Fix**: Timeout set to 10 seconds with error handling
@@ -544,15 +682,46 @@ print("✓ Brochure generation working")
 ```
 User Input (URL)
     ↓
-Website(url) → Fetch & Parse HTML
+main.generate_brochure() → Validates & configures
     ↓
-get_links() → AI Classification
+utils.create_brochure() → Orchestrates generation
     ↓
-website_content_all() → Aggregate Content
+Website(url) → Fetches & parses HTML
     ↓
-create_brochure() → Generate Brochure
+utils.get_links() → AI classification
     ↓
-Output (Markdown)
+utils.website_content_all() → Aggregates content
+    ↓
+Gemini AI → Generates brochure
+    ↓
+main.markdown_to_pdf() [optional] → PDF conversion
+    ↓
+Output (Markdown/PDF)
+```
+
+### Function Call Hierarchy
+
+```
+CLI (main.py)
+├── main() → Entry point
+└── generate_brochure() → Core logic
+
+Streamlit (app.py)
+└── generate_brochure() [imported from main] → Core logic
+
+Shared Core (main.py)
+├── generate_brochure()
+│   ├── configure_genai()
+│   ├── normalize_url()
+│   ├── get_model()
+│   └── create_brochure() [from utils]
+└── markdown_to_pdf()
+
+Utilities (utils.py)
+├── create_brochure()
+│   ├── Website() [from website.py]
+│   ├── get_links()
+│   └── website_content_all()
 ```
 
 ---
@@ -561,7 +730,54 @@ Output (Markdown)
 
 ### Common Issues and Solutions
 
-#### 1. **403 Forbidden Error (Access Denied)**
+#### 1. **PDF Download Not Working / "ModuleNotFoundError: xhtml2pdf"**
+
+**Error Message:**
+
+```
+ModuleNotFoundError: No module named 'xhtml2pdf'
+```
+
+**Cause:** The PDF generation library isn't installed or Streamlit is running from the wrong Python environment.
+
+**Solutions:**
+
+**🚀 Quick Fix (Recommended):**
+
+```bash
+# Run the startup script which handles everything
+./start.sh
+```
+
+**Manual Fix:**
+
+```bash
+# Activate your virtual environment first!
+source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate     # Windows
+
+# Install the PDF library
+pip install xhtml2pdf
+
+# Verify it's installed
+python -c "from xhtml2pdf import pisa; print('✅ PDF support ready!')"
+
+# Now run Streamlit from the same environment
+streamlit run app.py
+```
+
+**💡 Why This Happens:**
+
+- You might have multiple Python installations
+- Streamlit might be running from a different environment than where xhtml2pdf is installed
+- The virtual environment wasn't activated before running Streamlit
+
+**📚 Detailed Troubleshooting:**
+See [TROUBLESHOOTING_PDF.md](TROUBLESHOOTING_PDF.md) for comprehensive solutions.
+
+---
+
+#### 2. **403 Forbidden Error (Access Denied)**
 
 **Error Message:**
 
@@ -585,10 +801,13 @@ Some websites that generally work well:
 - ✅ `https://www.anthropic.com`
 - ✅ `https://www.python.org`
 - ✅ `https://github.com`
-- ✅ Most corporate/marketing websites
+- Most corporate/marketing websites
 - ❌ `https://openai.com` (blocks automation)
 - ❌ Sites behind Cloudflare protection
 - ❌ Sites with aggressive bot detection
+
+**📚 Full Compatibility List:**
+See [WEBSITE_COMPATIBILITY.md](WEBSITE_COMPATIBILITY.md) for detailed examples.
 
 **Option C - Manual Content Input:**
 For blocked sites, you can:
@@ -605,7 +824,12 @@ For blocked sites, you can:
 
 **Note:** Even with headers, some websites use advanced bot detection (CAPTCHA, JavaScript challenges, IP filtering) that cannot be bypassed with simple HTTP requests.
 
-#### 2. **Timeout Error**
+**📚 Detailed Website Compatibility Guide:**
+See [WEBSITE_COMPATIBILITY.md](WEBSITE_COMPATIBILITY.md) for a comprehensive list of working and blocked websites.
+
+---
+
+#### 3. **Timeout Error**
 
 **Error Message:**
 
@@ -620,7 +844,9 @@ Request timeout for [URL]. The website took too long to respond.
 - Try a different website
 - Increase timeout in `website.py` (currently 10 seconds)
 
-#### 3. **Connection Error**
+---
+
+#### 4. **Connection Error**
 
 **Error Message:**
 
@@ -635,13 +861,17 @@ Connection error for [URL]. Check your internet connection or the URL.
 - Try accessing the URL in your browser first
 - The website might be down temporarily
 
-#### 4. **AttributeError: 'Website' object has no attribute 'links'**
+---
+
+#### 5. **AttributeError: 'Website' object has no attribute 'links'**
 
 **Cause:** The `links` list wasn't initialized before use (already fixed in current version)
 
 **Solution:** Update to latest code where `self.links = []` is in `__init__`
 
-#### 5. **JSONDecodeError when getting links**
+---
+
+#### 6. **JSONDecodeError when getting links**
 
 **Cause:** The AI model didn't return valid JSON
 
@@ -651,7 +881,9 @@ Connection error for [URL]. Check your internet connection or the URL.
 - If persistent, check your API key and quota
 - The model might be overloaded - try again
 
-#### 6. **GENAI_API_KEY not found**
+---
+
+#### 7. **GENAI_API_KEY not found**
 
 **Cause:** Missing or incorrectly configured `.env` file
 
@@ -661,9 +893,12 @@ Connection error for [URL]. Check your internet connection or the URL.
 2. Add: `GENAI_API_KEY=your_actual_key_here`
 3. No quotes needed around the key
 4. Make sure there are no spaces around the `=`
-5. Restart your terminal/application after creating `.env`
 
-#### 7. **Module not found errors**
+- Restart your terminal/application after creating `.env`
+
+---
+
+#### 8. **Module not found errors**
 
 **Error Messages:**
 
@@ -730,13 +965,34 @@ print(f'Works! Title: {site.title}')
 
 ---
 
+## 📚 Additional Documentation
+
+- **[PDF_FEATURE.md](docs/PDF_FEATURE.md)**: Comprehensive PDF generation feature guide
+- **[TROUBLESHOOTING_PDF.md](docs/TROUBLESHOOTING_PDF.md)**: Solutions for PDF-related issues
+- **[WEBSITE_COMPATIBILITY.md](WEBSITE_COMPATIBILITY.md)**: Which websites work and which don't
+- **[src/README.md](src/README.md)**: Detailed source code documentation
+
+---
+
 ## 🎯 Design Patterns
 
-- **Single Responsibility**: Each module has one clear purpose
-- **Dependency Injection**: Models passed as parameters
+- **Single Responsibility Principle**: Each module has one clear purpose
+  - `main.py` - Core business logic and CLI
+  - `app.py` - UI/UX only
+  - `utils.py` - Website utilities
+  - `website.py` - Content extraction
+- **DRY (Don't Repeat Yourself)**: No code duplication
+  - `app.py` imports all logic from `main.py`
+  - Shared functions centralized in `main.py`
+- **Dependency Injection**: Models and configurations passed as parameters
+
+- **Separation of Concerns**: UI completely separated from business logic
+
 - **Error Recovery**: Graceful fallbacks for failures
-- **Type Hints**: Clear function signatures
-- **Docstrings**: Comprehensive documentation
+
+- **Type Hints**: Clear function signatures throughout
+
+- **Docstrings**: Comprehensive documentation for all functions
 
 ---
 
@@ -753,23 +1009,52 @@ print(f'Works! Title: {site.title}')
 
 When adding new features:
 
-1. Follow existing code structure
-2. Add type hints to function signatures
-3. Include docstrings with examples
-4. Handle errors gracefully
-5. Update this README
+1. **Follow the architecture**:
+   - Core logic goes in `main.py`
+   - UI changes go in `app.py` (import from main)
+   - Website utilities go in `utils.py`
+2. **Maintain DRY principle**:
+   - Don't duplicate code between CLI and Streamlit
+   - Create reusable functions in `main.py`
+3. **Code quality**:
+   - Add type hints to function signatures
+   - Include docstrings with examples
+   - Handle errors gracefully
+   - Write clean, readable code
+4. **Documentation**:
+
+   - Update this README
+   - Add comments for complex logic
+   - Update relevant docs/ files
+
+5. **Testing**:
+   - Test both CLI and Streamlit interfaces
+   - Verify PDF generation works
+   - Check error handling
 
 ---
 
 ## 🚀 Performance Tips
 
-- **Batch Processing**: Process multiple URLs in sequence
-- **Caching**: Cache website content to avoid re-fetching
+- **Code Organization**: Following DRY principle reduces maintenance overhead
+- **Batch Processing**: Process multiple URLs in sequence using `main.py` CLI
+- **Caching**: Cache website content to avoid re-fetching (future enhancement)
 - **Async Requests**: Use `aiohttp` for parallel fetching (future enhancement)
 - **Rate Limiting**: Respect API quotas
+- **Modular Import**: `app.py` only imports what it needs from `main.py`
+
+---
+
+## 📚 Additional Documentation
+
+- **[PDF_FEATURE.md](docs/PDF_FEATURE.md)**: Comprehensive PDF generation feature guide
+- **[TROUBLESHOOTING_PDF.md](docs/TROUBLESHOOTING_PDF.md)**: Solutions for PDF-related issues
+- **[WEBSITE_COMPATIBILITY.md](docs/WEBSITE_COMPATIBILITY.md)**: Which websites work and which don't
+- **[PDF_IMPLEMENTATION_SUMMARY.md](docs/PDF_IMPLEMENTATION_SUMMARY.md)**: Technical implementation details
 
 ---
 
 **Last Updated**: October 2025  
 **Python Version**: 3.8+  
+**Architecture**: DRY principle with main.py doing heavy lifting  
 **Dependencies**: See `requirements.txt` in project root

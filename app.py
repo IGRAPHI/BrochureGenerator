@@ -1,20 +1,22 @@
 """
 Streamlit web interface for AI-powered company brochure generation.
+Imports core functionality from main.py to avoid code duplication.
 """
 
 import streamlit as st
 import os
-import google.generativeai as genai
-from dotenv import load_dotenv
-from utils import create_brochure
-
-# Load environment variables
-load_dotenv()
+from main import get_api_key, generate_brochure, markdown_to_pdf, PDF_AVAILABLE
 
 # Page config
 st.set_page_config(
     page_title="AI Company Brochure Generator", page_icon="📄", layout="wide"
 )
+
+# Initialize session state for storing brochure
+if "brochure" not in st.session_state:
+    st.session_state.brochure = None
+if "last_url" not in st.session_state:
+    st.session_state.last_url = None
 
 # Custom CSS
 st.markdown(
@@ -30,6 +32,61 @@ st.markdown(
         text-align: center;
         color: #666;
         margin-bottom: 2rem;
+    }
+    /* Enhanced markdown styling for brochure display */
+    .stMarkdown h1 {
+        color: #2c3e50;
+        border-bottom: 3px solid #3498db;
+        padding-bottom: 10px;
+        margin-top: 20px;
+    }
+    .stMarkdown h2 {
+        color: #34495e;
+        border-bottom: 2px solid #95a5a6;
+        padding-bottom: 5px;
+        margin-top: 18px;
+    }
+    .stMarkdown h3 {
+        color: #555;
+        margin-top: 15px;
+    }
+    .stMarkdown p {
+        line-height: 1.6;
+        margin: 10px 0;
+    }
+    .stMarkdown ul, .stMarkdown ol {
+        margin: 10px 0;
+        padding-left: 30px;
+    }
+    .stMarkdown li {
+        margin: 5px 0;
+    }
+    .stMarkdown a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    .stMarkdown a:hover {
+        text-decoration: underline;
+    }
+    .stMarkdown code {
+        background-color: #f4f4f4;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-family: 'Courier New', monospace;
+    }
+    .stMarkdown pre {
+        background-color: #f4f4f4;
+        padding: 10px;
+        border-radius: 5px;
+        border-left: 4px solid #3498db;
+        overflow-x: auto;
+    }
+    .stMarkdown blockquote {
+        border-left: 4px solid #3498db;
+        padding-left: 15px;
+        margin: 15px 0;
+        color: #555;
+        font-style: italic;
     }
     </style>
 """,
@@ -51,7 +108,7 @@ with st.sidebar:
     st.header("⚙️ Configuration")
 
     # API Key input
-    api_key = os.getenv("GENAI_API_KEY")
+    api_key = get_api_key()
     if not api_key:
         api_key = st.text_input("Enter your Google Gemini API Key", type="password")
         if api_key:
@@ -78,6 +135,11 @@ with st.sidebar:
     - Generation may take 30-60 seconds
     """)
 
+    # if not PDF_AVAILABLE:
+    #     st.divider()
+    #     st.warning("⚠️ PDF export not available")
+    #     st.caption("Install with: `pip install xhtml2pdf`")
+
 # Main content
 st.header("🌐 Enter Website URL")
 
@@ -95,6 +157,12 @@ with col2:
         "🚀 Generate Brochure", type="primary", use_container_width=True
     )
 
+# Check if URL changed - if so, clear previous brochure
+if website_url and website_url != st.session_state.last_url:
+    if st.session_state.last_url is not None:  # Only clear if there was a previous URL
+        st.session_state.brochure = None
+    st.session_state.last_url = website_url
+
 # Generate brochure
 if generate_button:
     if not api_key:
@@ -104,58 +172,72 @@ if generate_button:
     elif not website_url:
         st.error("❌ Please enter a website URL")
     else:
-        # Ensure URL has protocol
-        if not website_url.startswith(("http://", "https://")):
-            website_url = "https://" + website_url
-
         try:
-            # Configure Gemini
-            genai.configure(api_key=api_key)
-
-            # System prompt
-            system_prompt = """You are a professional marketing copywriter that creates detailed, 
-            engaging company brochures based on website content. Your brochures are well-structured, 
-            informative, and highlight the company's key strengths and offerings."""
-
-            # Initialize model
-            model = genai.GenerativeModel(
-                model_name="gemini-2.0-flash-exp", system_instruction=system_prompt
-            )
-
             # Progress indicators
             with st.spinner(f"🔍 Analyzing {website_url}..."):
                 st.info("📥 Fetching website content...")
 
-                # Generate brochure
-                brochure = create_brochure(website_url, model)
+                # Generate brochure using main.py function
+                brochure = generate_brochure(website_url, api_key)
+
+                # Store in session state
+                st.session_state.brochure = brochure
+                st.session_state.last_url = website_url
 
                 st.success("✅ Brochure generated successfully!")
-
-            # Display brochure
-            st.divider()
-            st.header("📄 Generated Brochure")
-
-            # Tabs for different views
-            tab1, tab2 = st.tabs(["📖 Formatted View", "📝 Raw Markdown"])
-
-            with tab1:
-                st.markdown(brochure)
-
-            with tab2:
-                st.code(brochure, language="markdown")
-
-            # Download button
-            st.divider()
-            st.download_button(
-                label="⬇️ Download Brochure (Markdown)",
-                data=brochure,
-                file_name="company_brochure.md",
-                mime="text/markdown",
-            )
 
         except Exception as e:
             st.error(f"❌ Error: {str(e)}")
             st.exception(e)
+
+# Display brochure if it exists in session state
+if st.session_state.brochure:
+    brochure = st.session_state.brochure
+
+    # Display brochure
+    st.divider()
+    st.header("📄 Generated Brochure")
+
+    # Display formatted markdown with proper rendering
+    # Use a container with custom CSS for better markdown display
+    with st.container():
+        st.markdown(brochure, unsafe_allow_html=True)
+
+    # Download options
+    st.divider()
+    st.subheader("📥 Download Options")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.download_button(
+            label="⬇️ Download as Markdown (.md)",
+            data=brochure,
+            file_name="company_brochure.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+
+    with col2:
+        # Generate PDF only if library is available
+        if PDF_AVAILABLE:
+            try:
+                pdf_buffer = markdown_to_pdf(brochure)
+                st.download_button(
+                    label="⬇️ Download as PDF (.pdf)",
+                    data=pdf_buffer,
+                    file_name="company_brochure.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                )
+            except Exception as pdf_error:
+                st.warning(f"⚠️ PDF generation failed: {pdf_error}")
+                st.info(
+                    "💡 Tip: You can download Markdown and convert it using online tools"
+                )
+        else:
+            st.info("📄 PDF export not available")
+            st.caption("Install with: `pip install xhtml2pdf`")
 
 # Footer
 st.divider()
