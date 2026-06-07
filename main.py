@@ -15,9 +15,12 @@ import re
 # Load environment variables
 load_dotenv()
 
+# Gemini model used across the project (shared constant).
+MODEL_NAME = "gemini-2.0-flash-exp"
+
 # System prompt for brochure generation (shared constant)
-SYSTEM_PROMPT = """You are a professional marketing copywriter that creates detailed, 
-engaging company brochures based on website content. Your brochures are well-structured, 
+SYSTEM_PROMPT = """You are a professional marketing copywriter that creates detailed,
+engaging company brochures based on website content. Your brochures are well-structured,
 informative, and highlight the company's key strengths and offerings."""
 
 # Check if ReportLab is available
@@ -72,7 +75,7 @@ def get_model(system_instruction: str = SYSTEM_PROMPT):
         GenerativeModel: Configured Gemini model
     """
     return genai.GenerativeModel(
-        model_name="gemini-2.0-flash-exp", system_instruction=system_instruction
+        model_name=MODEL_NAME, system_instruction=system_instruction
     )
 
 
