@@ -19,13 +19,16 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
 
-# Cloud Run sets $PORT; default to 8080 for local `docker run`.
-ENV PORT=8080
-EXPOSE 8080
+# Hugging Face Spaces (Docker) expects the app on port 7860; Cloud Run sets
+# its own $PORT (8080) which overrides this default. So this works on both.
+ENV PORT=7860
+EXPOSE 7860
 
 # Shell form so $PORT expands at runtime.
 CMD streamlit run app.py \
     --server.port=$PORT \
     --server.address=0.0.0.0 \
     --server.headless=true \
+    --server.enableCORS=false \
+    --server.enableXsrfProtection=false \
     --browser.gatherUsageStats=false
