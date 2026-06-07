@@ -6,43 +6,42 @@ Also provides core functions used by the Streamlit app.
 
 import os
 import sys
-import google.generativeai as genai
 from dotenv import load_dotenv
-from utils import create_brochure
-from io import BytesIO
-import re
+
+# PDF export is shared with the rest of the app and has no AI-provider deps.
+from pdf_export import markdown_to_pdf, PDF_AVAILABLE  # noqa: F401 (re-exported)
 
 # Load environment variables
 load_dotenv()
 
 # System prompt for brochure generation (shared constant)
-SYSTEM_PROMPT = """You are a professional marketing copywriter that creates detailed, 
-engaging company brochures based on website content. Your brochures are well-structured, 
+SYSTEM_PROMPT = """You are a professional marketing copywriter that creates detailed,
+engaging company brochures based on website content. Your brochures are well-structured,
 informative, and highlight the company's key strengths and offerings."""
 
-# Check if ReportLab is available
-try:
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
-    from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
-    from reportlab.lib.colors import HexColor
-    import markdown2
 
-    PDF_AVAILABLE = True
-except ImportError:
-    PDF_AVAILABLE = False
+def _genai():
+    """Lazily import google-generativeai so the rest of the app runs without it."""
+    try:
+        import google.generativeai as genai
+    except ImportError as e:  # pragma: no cover
+        raise RuntimeError(
+            "google-generativeai is not installed. Install it to use the "
+            "Gemini-powered Company Brochure Generator."
+        ) from e
+    return genai
 
 
 def get_api_key() -> str:
     """
-    Get API key from environment variables.
+    Get the Gemini API key from environment variables.
+
+    Accepts the new GEMINI_API_KEY and the legacy GENAI_API_KEY.
 
     Returns:
         str: API key if found, None otherwise
     """
-    return os.getenv("GENAI_API_KEY")
+    return os.getenv("GEMINI_API_KEY") or os.getenv("GENAI_API_KEY")
 
 
 def configure_genai(api_key: str = None) -> None:
@@ -56,9 +55,9 @@ def configure_genai(api_key: str = None) -> None:
         api_key = get_api_key()
 
     if not api_key:
-        raise ValueError("GENAI_API_KEY not found. Please provide API key.")
+        raise ValueError("Gemini API key not found. Please provide an API key.")
 
-    genai.configure(api_key=api_key)
+    _genai().configure(api_key=api_key)
 
 
 def get_model(system_instruction: str = SYSTEM_PROMPT):
@@ -71,7 +70,7 @@ def get_model(system_instruction: str = SYSTEM_PROMPT):
     Returns:
         GenerativeModel: Configured Gemini model
     """
-    return genai.GenerativeModel(
+    return _genai().GenerativeModel(
         model_name="gemini-2.0-flash-exp", system_instruction=system_instruction
     )
 
@@ -116,157 +115,12 @@ def generate_brochure(website_url: str, api_key: str = None) -> str:
     # Get model
     model = get_model()
 
-    # Generate brochure
+    # Generate brochure (imported lazily so the studio runs without google deps)
+    from utils import create_brochure
+
     brochure = create_brochure(website_url, model)
 
     return brochure
-
-
-def markdown_to_pdf(markdown_text: str) -> BytesIO:
-    """
-    Convert markdown text to PDF using ReportLab.
-
-    Args:
-        markdown_text (str): Markdown formatted text
-
-    Returns:
-        BytesIO: PDF file as bytes
-
-    Raises:
-        ImportError: If reportlab or markdown2 is not installed
-        Exception: If PDF generation fails
-    """
-    if not PDF_AVAILABLE:
-        raise ImportError(
-            "PDF libraries not installed. Run: pip install reportlab markdown2"
-        )
-
-    # Create PDF buffer
-    pdf_buffer = BytesIO()
-
-    # Create PDF document
-    doc = SimpleDocTemplate(
-        pdf_buffer,
-        pagesize=A4,
-        rightMargin=72,
-        leftMargin=72,
-        topMargin=72,
-        bottomMargin=72,
-    )
-
-    # Container for the 'Flowable' objects
-    story = []
-
-    # Define styles
-    styles = getSampleStyleSheet()
-
-    # Custom styles
-    title_style = ParagraphStyle(
-        "CustomTitle",
-        parent=styles["Heading1"],
-        fontSize=24,
-        textColor=HexColor("#2c3e50"),
-        spaceAfter=30,
-        spaceBefore=20,
-        alignment=TA_LEFT,
-    )
-
-    heading1_style = ParagraphStyle(
-        "CustomHeading1",
-        parent=styles["Heading1"],
-        fontSize=18,
-        textColor=HexColor("#34495e"),
-        spaceAfter=12,
-        spaceBefore=12,
-        borderColor=HexColor("#95a5a6"),
-        borderWidth=1,
-        borderPadding=5,
-    )
-
-    heading2_style = ParagraphStyle(
-        "CustomHeading2",
-        parent=styles["Heading2"],
-        fontSize=14,
-        textColor=HexColor("#555555"),
-        spaceAfter=10,
-        spaceBefore=10,
-    )
-
-    body_style = ParagraphStyle(
-        "CustomBody",
-        parent=styles["BodyText"],
-        fontSize=11,
-        alignment=TA_JUSTIFY,
-        spaceAfter=12,
-        leading=16,
-    )
-
-    # Process markdown line by line
-    lines = markdown_text.split("\n")
-    i = 0
-
-    while i < len(lines):
-        line = lines[i].strip()
-
-        if not line:
-            story.append(Spacer(1, 0.1 * inch))
-            i += 1
-            continue
-
-        # Handle headers
-        if line.startswith("# "):
-            text = line[2:].strip()
-            # Remove markdown links
-            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-            story.append(Paragraph(text, title_style))
-            story.append(Spacer(1, 0.2 * inch))
-
-        elif line.startswith("## "):
-            text = line[3:].strip()
-            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-            story.append(Paragraph(text, heading1_style))
-            story.append(Spacer(1, 0.15 * inch))
-
-        elif line.startswith("### "):
-            text = line[4:].strip()
-            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-            story.append(Paragraph(text, heading2_style))
-            story.append(Spacer(1, 0.1 * inch))
-
-        # Handle bullet points
-        elif line.startswith("* ") or line.startswith("- "):
-            text = line[2:].strip()
-            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-            # Make bold text
-            text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
-            text = re.sub(r"`([^`]+)`", r'<font face="Courier">\1</font>', text)
-            story.append(Paragraph(f"• {text}", body_style))
-
-        # Handle regular paragraphs
-        else:
-            text = line
-            # Remove markdown links but keep text
-            text = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
-            # Make bold text
-            text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
-            # Make italic text
-            text = re.sub(r"\*([^*]+)\*", r"<i>\1</i>", text)
-            # Handle inline code
-            text = re.sub(r"`([^`]+)`", r'<font face="Courier">\1</font>', text)
-
-            if text:
-                story.append(Paragraph(text, body_style))
-                story.append(Spacer(1, 0.05 * inch))
-
-        i += 1
-
-    # Build PDF
-    try:
-        doc.build(story)
-        pdf_buffer.seek(0)
-        return pdf_buffer
-    except Exception as e:
-        raise Exception(f"PDF generation failed: {str(e)}")
 
 
 def main():

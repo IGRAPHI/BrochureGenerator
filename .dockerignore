@@ -1,0 +1,13 @@
+# Keep the image small and never bake secrets/local cruft into it.
+.env
+.env.*
+venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.git/
+.gitignore
+*.pdf
+docs/
+*.md
+!README.md

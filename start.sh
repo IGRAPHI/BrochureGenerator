@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Startup script for AI-Powered Company Brochure Generator
+# Startup script for the AI Presentation & Brochure Studio
+# (Presentation Creative Brief + Company Brochure Generator)
 # This ensures the correct virtual environment is used
 
 # Colors for output
@@ -9,7 +10,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}🚀 Starting AI-Powered Company Brochure Generator${NC}"
+echo -e "${GREEN}🚀 Starting AI Presentation & Brochure Studio${NC}"
 echo "=================================================="
 
 # Get script directory
