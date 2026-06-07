@@ -29,6 +29,15 @@ import os
 import re
 from typing import Optional
 
+# Load a local .env as early as possible so the key is visible to EVERY entry
+# point (Strategy Studio page, brochure page, and the CLI) — not just the
+# brochure path. Safe no-op if python-dotenv or .env is absent.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
+
 DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-8"
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash-exp"
 
@@ -58,13 +67,27 @@ class ProviderError(RuntimeError):
 # Key helpers
 # ---------------------------------------------------------------------------
 
+def _clean_key(value: Optional[str]) -> Optional[str]:
+    """Trim whitespace and strip stray surrounding <...> (a common paste/templating artifact)."""
+    if value is None:
+        return None
+    value = value.strip()
+    if len(value) >= 2 and value[0] == "<" and value[-1] == ">":
+        value = value[1:-1].strip()
+    return value or None
+
+
 def anthropic_key(explicit: str = None) -> Optional[str]:
-    return explicit or os.getenv("ANTHROPIC_API_KEY")
+    return _clean_key(explicit) or _clean_key(os.getenv("ANTHROPIC_API_KEY"))
 
 
 def gemini_key(explicit: str = None) -> Optional[str]:
-    # Accept the new GEMINI_API_KEY and the legacy GENAI_API_KEY for compatibility.
-    return explicit or os.getenv("GEMINI_API_KEY") or os.getenv("GENAI_API_KEY")
+    # Accept the new GEMINI_API_KEY and the legacy GENAI_API_KEY.
+    return (
+        _clean_key(explicit)
+        or _clean_key(os.getenv("GEMINI_API_KEY"))
+        or _clean_key(os.getenv("GENAI_API_KEY"))
+    )
 
 
 def resolve_provider_name(preferred: str = None) -> str:
