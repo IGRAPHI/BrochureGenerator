@@ -14,7 +14,7 @@ import streamlit as st
 
 import providers
 import creative_brief as cb
-from pdf_export import markdown_to_pdf, PDF_AVAILABLE
+from html_export import markdown_to_html
 
 # ---------------------------------------------------------------------------
 # Session state
@@ -118,11 +118,6 @@ with st.sidebar:
     st.header("🎯 The 6 presentation needs")
     for name, meta in cb.PRESENTATION_NEEDS.items():
         st.markdown(f"**{name}**  \n{meta['summary']}")
-
-    if not PDF_AVAILABLE:
-        st.divider()
-        st.warning("⚠️ PDF export not available")
-        st.caption("Install with: `pip install reportlab markdown2`")
 
 # ---------------------------------------------------------------------------
 # Intake form
@@ -248,21 +243,14 @@ if st.session_state.brief:
     col1, col2 = st.columns(2)
     with col1:
         st.download_button(
+            "⬇️ HTML (.html)", data=markdown_to_html(brief, "Creative Brief"),
+            file_name="creative_brief.html", mime="text/html", use_container_width=True,
+        )
+    with col2:
+        st.download_button(
             "⬇️ Markdown (.md)", data=brief, file_name="creative_brief.md",
             mime="text/markdown", use_container_width=True,
         )
-    with col2:
-        if PDF_AVAILABLE:
-            try:
-                st.download_button(
-                    "⬇️ PDF (.pdf)", data=markdown_to_pdf(brief),
-                    file_name="creative_brief.pdf", mime="application/pdf",
-                    use_container_width=True,
-                )
-            except Exception as pdf_error:
-                st.warning(f"⚠️ PDF generation failed: {pdf_error}")
-        else:
-            st.info("📄 PDF export not available")
 
     # ---- Additional output options ----
     st.divider()
@@ -287,22 +275,18 @@ if st.session_state.brief:
         with st.expander(f"📑 {label}", expanded=True):
             st.markdown(content)
             slug = label.lower().replace(" ", "_").replace("/", "_")
-            dcol1, dcol2 = st.columns(2)
-            with dcol1:
+            ecol1, ecol2 = st.columns(2)
+            with ecol1:
+                st.download_button(
+                    "⬇️ HTML (.html)", data=markdown_to_html(content, label),
+                    file_name=f"{slug}.html", mime="text/html",
+                    use_container_width=True, key=f"dl_html_{label}",
+                )
+            with ecol2:
                 st.download_button(
                     "⬇️ Markdown (.md)", data=content, file_name=f"{slug}.md",
                     mime="text/markdown", use_container_width=True, key=f"dl_md_{label}",
                 )
-            with dcol2:
-                if PDF_AVAILABLE:
-                    try:
-                        st.download_button(
-                            "⬇️ PDF (.pdf)", data=markdown_to_pdf(content),
-                            file_name=f"{slug}.pdf", mime="application/pdf",
-                            use_container_width=True, key=f"dl_pdf_{label}",
-                        )
-                    except Exception:
-                        st.caption("PDF unavailable for this output")
 
 # ---------------------------------------------------------------------------
 # Footer
