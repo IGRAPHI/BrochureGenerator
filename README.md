@@ -1,3 +1,14 @@
+# AI Presentation & Brochure Studio 🎯
+
+A multipage Streamlit app powered by Google's Gemini AI with two tools:
+
+- **📊 Presentation Creative Brief** — a creative-director-style intake that turns a few smart questions into a detailed creative brief plus build-ready outputs (slide outline, speaker notes, design direction, a PowerPoint-ready content plan, and AI prompts for visuals). It helps you understand the presentation *before* you design a single slide. See [docs/CREATIVE_BRIEF_FEATURE.md](docs/CREATIVE_BRIEF_FEATURE.md).
+- **📄 Company Brochure Generator** — automatically generates a professional company brochure from any website URL (documented below).
+
+Run `streamlit run app.py` and switch between the two tools from the sidebar. The Creative Brief is the default landing page.
+
+---
+
 # AI-Powered Company Brochure Generator 📄
 
 An intelligent application that automatically generates professional company brochures from any website using Google's Gemini AI.
