@@ -40,13 +40,13 @@ st.markdown(
 
 # Multipage navigation. The creative brief is the default landing page.
 creative_brief_page = st.Page(
-    "views/creative_brief_page.py",
+    "creative_brief_page.py",
     title="Presentation Strategy Studio",
     icon="📊",
     default=True,
 )
 brochure_page = st.Page(
-    "views/brochure_page.py",
+    "brochure_page.py",
     title="Company Brochure Generator",
     icon="📄",
 )
