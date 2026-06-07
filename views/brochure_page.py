@@ -113,8 +113,8 @@ if generate_button:
                 st.success("✅ Brochure generated successfully!")
 
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
-            st.exception(e)
+            import providers
+            st.error(f"❌ Error: {providers.redact(str(e))}")
 
 # Display brochure if it exists in session state
 if st.session_state.brochure:

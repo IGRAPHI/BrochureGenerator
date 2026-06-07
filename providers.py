@@ -24,11 +24,25 @@ Imports of the heavy SDKs are lazy, so neither `anthropic` nor
 
 from __future__ import annotations
 
+import importlib.util
 import os
+import re
 from typing import Optional
 
 DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-8"
 DEFAULT_GEMINI_MODEL = "gemini-2.0-flash-exp"
+
+# Defense-in-depth: never let anything that looks like a secret reach a log,
+# the UI, a traceback, or a generated file. Apply redact() to any message that
+# could conceivably contain key material before it is shown or stored.
+_SECRET_RE = re.compile(
+    r"(sk-ant-[A-Za-z0-9_\-]{6,}|AIza[A-Za-z0-9_\-]{10,}|sk-[A-Za-z0-9]{20,})"
+)
+
+
+def redact(text) -> str:
+    """Mask anything resembling an Anthropic/Gemini API key."""
+    return _SECRET_RE.sub("***redacted***", str(text))
 
 # Canonical provider keys
 CLAUDE = "claude"
@@ -211,3 +225,63 @@ def provider_status(api_key: str = None) -> dict:
         "anthropic_model": os.getenv("ANTHROPIC_MODEL") or DEFAULT_ANTHROPIC_MODEL,
         "gemini_model": os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL,
     }
+
+
+def sdk_available(name: str) -> bool:
+    """Whether the SDK package for a provider is importable (no key needed)."""
+    module = {CLAUDE: "anthropic", GEMINI: "google.generativeai"}.get(name)
+    if not module:
+        return True
+    try:
+        return importlib.util.find_spec(module) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def readiness(preferred: str = None, api_key: str = None) -> dict:
+    """
+    Zero-cost check of whether Live Mode is ready (no API call, no key value
+    returned). Useful for surfacing 'ready for live' status in the UI.
+    """
+    name = resolve_provider_name(preferred)
+    if name == CLAUDE:
+        has_key = bool(anthropic_key(api_key))
+        sdk = sdk_available(CLAUDE)
+        return {
+            "provider": CLAUDE,
+            "has_key": has_key,
+            "sdk_installed": sdk,
+            "ready": has_key and sdk,
+            "model": os.getenv("ANTHROPIC_MODEL") or DEFAULT_ANTHROPIC_MODEL,
+        }
+    if name == GEMINI:
+        has_key = bool(gemini_key(api_key))
+        sdk = sdk_available(GEMINI)
+        return {
+            "provider": GEMINI,
+            "has_key": has_key,
+            "sdk_installed": sdk,
+            "ready": has_key and sdk,
+            "model": os.getenv("GEMINI_MODEL") or DEFAULT_GEMINI_MODEL,
+        }
+    return {"provider": DEMO, "has_key": False, "sdk_installed": True, "ready": True, "model": "—"}
+
+
+def health_check(provider=None) -> tuple:
+    """
+    Verify the active provider can actually generate, without ever exposing the
+    key. Returns (ok: bool, message: str). In Demo Mode no live call is made.
+    The message is always redacted.
+    """
+    prov = provider if provider is not None else get_provider()
+    if getattr(prov, "is_mock", False):
+        return True, f"Demo Mode active ({prov.reason}). No live API call made."
+    try:
+        prov.generate(
+            "You are a connectivity probe. Reply with exactly: OK",
+            "Reply with exactly: OK",
+        )
+        model = getattr(prov, "model", "?")
+        return True, f"{prov.label} connection OK (model {model})."
+    except Exception as e:  # never surface key material
+        return False, redact(f"{prov.label} connection failed: {e}")

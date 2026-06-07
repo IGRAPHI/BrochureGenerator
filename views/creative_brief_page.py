@@ -99,6 +99,21 @@ with st.sidebar:
     else:
         st.caption(f"🔵 Gemini mode · `{active_provider.model}`")
 
+    # Zero-cost live-readiness hint (never shows or makes a call with the key).
+    rd = providers.readiness(preferred=selected_name, api_key=key)
+    if selected_name != providers.DEMO and not rd["ready"]:
+        missing = []
+        if not rd["has_key"]:
+            missing.append("API key")
+        if not rd["sdk_installed"]:
+            missing.append("SDK package")
+        st.caption("Live readiness: ⚠️ " + ", ".join(missing) + " missing → using Demo Mode")
+
+    if st.button("🔌 Test connection", use_container_width=True,
+                 help="Makes a tiny request to verify the provider works. In Demo Mode no call is made."):
+        ok, msg = providers.health_check(active_provider)  # message is redacted
+        (st.success if ok else st.error)(msg)
+
     st.divider()
     st.header("🎯 The 6 presentation needs")
     for name, meta in cb.PRESENTATION_NEEDS.items():
@@ -214,8 +229,8 @@ if submitted:
             st.session_state.brief_exports = {}  # reset stale exports
             st.success("✅ Creative brief generated!")
         except Exception as e:
-            st.error(f"❌ Error: {str(e)}")
-            st.exception(e)
+            # Redacted, message-only (no traceback) so a key can never leak.
+            st.error(f"❌ Error: {providers.redact(str(e))}")
 
 # ---------------------------------------------------------------------------
 # Display brief + exports
@@ -266,7 +281,7 @@ if st.session_state.brief:
                             brief, intake, active_provider
                         )
                 except Exception as e:
-                    st.error(f"❌ Error generating {label}: {e}")
+                    st.error(f"❌ Error generating {label}: {providers.redact(str(e))}")
 
     for label, content in st.session_state.brief_exports.items():
         with st.expander(f"📑 {label}", expanded=True):

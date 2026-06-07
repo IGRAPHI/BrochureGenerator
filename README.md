@@ -40,6 +40,38 @@ GEMINI_API_KEY=...
 
 > Note: the Company Brochure Generator uses Gemini specifically (it scrapes + classifies website content). It accepts `GEMINI_API_KEY` or the legacy `GENAI_API_KEY`.
 
+## 🔐 Configuring the API key securely
+
+**Add the key as an environment variable or a platform secret — never commit it to the repository.**
+
+- `.env` is already in `.gitignore`, so a local `.env` file is safe for development and is **not** tracked by git. Copy `.env.example` → `.env` and fill in your key locally.
+- For hosted/CI/Claude Code on the web, set `ANTHROPIC_API_KEY` as an **environment variable / secret** in the platform's settings rather than putting it in a file.
+- The values shown in this README and in `.env.example` (e.g. `sk-ant-...`) are **placeholders**, not real keys.
+
+```bash
+# Local development
+cp .env.example .env
+# then edit .env and set:
+#   AI_PROVIDER=claude
+#   ANTHROPIC_API_KEY=<your key>   # placeholder — paste your real key locally only
+```
+
+```bash
+# Or export it in your shell / CI (not committed anywhere)
+export AI_PROVIDER=claude
+export ANTHROPIC_API_KEY=...        # your key
+```
+
+**Verify it's working without exposing the key:**
+
+```bash
+python creative_brief.py --check    # prints "OK: Claude connection OK ..." or a redacted error
+```
+
+You can also click **🔌 Test connection** in the app sidebar.
+
+**Security guarantees in the code:** the app never prints, logs, or writes the API key to the interface, console, test output, or any generated file. Provider/error messages are passed through a redaction filter (`providers.redact`) and tracebacks are not shown in the UI, so key material cannot leak even on failure. If you accidentally commit a real key, rotate it immediately.
+
 ---
 
 # AI-Powered Company Brochure Generator 📄

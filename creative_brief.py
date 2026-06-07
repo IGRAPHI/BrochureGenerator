@@ -949,6 +949,11 @@ def _cli() -> None:
     print(f"[{APP_NAME}] provider: {prov.label}"
           f"{' (Demo Mode — ' + prov.reason + ')' if prov.is_mock else ''}\n")
 
+    if "--check" in sys.argv:
+        ok, msg = providers.health_check(prov)  # redacted, never prints the key
+        print(("OK: " if ok else "FAIL: ") + msg)
+        sys.exit(0 if ok else 1)
+
     if use_sample:
         intake = dict(SAMPLE_INTAKE)
         print(f"Using sample intake: {intake['topic']}\n")
