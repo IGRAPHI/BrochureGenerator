@@ -1,11 +1,44 @@
 # AI Presentation & Brochure Studio 🎯
 
-A multipage Streamlit app powered by Google's Gemini AI with two tools:
+A multipage Streamlit app with two tools:
 
-- **📊 Presentation Creative Brief** — a creative-director-style intake that turns a few smart questions into a detailed creative brief plus build-ready outputs (slide outline, speaker notes, design direction, a PowerPoint-ready content plan, and AI prompts for visuals). It helps you understand the presentation *before* you design a single slide. See [docs/CREATIVE_BRIEF_FEATURE.md](docs/CREATIVE_BRIEF_FEATURE.md).
+- **📊 Presentation Strategy Studio** — a creative-director-style intake that turns a few smart questions into a detailed, mode-adaptive creative brief plus build-ready outputs (slide outline, speaker notes, design direction, a PowerPoint-ready content plan, and AI prompts for visuals). It helps you understand the presentation *before* you design a single slide. See [docs/CREATIVE_BRIEF_FEATURE.md](docs/CREATIVE_BRIEF_FEATURE.md).
 - **📄 Company Brochure Generator** — automatically generates a professional company brochure from any website URL (documented below).
 
-Run `streamlit run app.py` and switch between the two tools from the sidebar. The Creative Brief is the default landing page.
+Run `streamlit run app.py` and switch between the two tools from the sidebar. The Strategy Studio is the default landing page.
+
+## 🤖 AI providers — Claude first, Gemini optional, Demo Mode always-on
+
+The app is **not hard-coded to one model**. A small provider layer (`providers.py`) lets you choose:
+
+| Mode | When it's used | Requires |
+| --- | --- | --- |
+| **Claude (default & preferred)** | `AI_PROVIDER=claude` (default) | `ANTHROPIC_API_KEY` |
+| **Gemini (optional)** | `AI_PROVIDER=gemini` | `GEMINI_API_KEY` (legacy `GENAI_API_KEY` also accepted) |
+| **Demo Mode** | no key found, or `AI_PROVIDER=demo` | nothing — runs offline with illustrative output |
+
+**Use Claude first.** Set one environment variable and you're done:
+
+```bash
+# .env  (copy from .env.example)
+AI_PROVIDER=claude
+ANTHROPIC_API_KEY=sk-ant-...
+# ANTHROPIC_MODEL=claude-opus-4-8   # optional override (this is the default)
+```
+
+Claude is the default for the creative brief, slide strategy, structure, design direction, and speaker-support notes. The Strategy Studio defaults to Claude Opus 4.8 (override with `ANTHROPIC_MODEL`).
+
+**Gemini is only an optional alternative.** Switch with:
+
+```bash
+AI_PROVIDER=gemini
+GEMINI_API_KEY=...
+# GEMINI_MODEL=gemini-2.0-flash-exp   # optional override
+```
+
+**No key? It still runs.** With no key configured the app falls back to **Demo Mode** and produces clearly-labeled sample output so you can explore the full flow (and PDF export) without an API key. You can also pick the provider and paste a key directly in the sidebar at runtime.
+
+> Note: the Company Brochure Generator uses Gemini specifically (it scrapes + classifies website content). It accepts `GEMINI_API_KEY` or the legacy `GENAI_API_KEY`.
 
 ---
 

@@ -129,10 +129,10 @@ def create_brochure(website_url: str, model_brochure) -> str:
     from dotenv import load_dotenv
 
     load_dotenv()
-    api_key = os.getenv("GENAI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GENAI_API_KEY")
 
     if not api_key:
-        raise ValueError("GENAI_API_KEY not found in environment variables")
+        raise ValueError("Gemini API key not found (set GEMINI_API_KEY or GENAI_API_KEY)")
 
     genai.configure(api_key=api_key)
 

@@ -1,9 +1,17 @@
+# --- AI providers ---
+anthropic            # Claude (preferred / default provider)
+google-generativeai  # Gemini (optional alternative provider)
+
+# --- App + utilities ---
+streamlit
+python-dotenv
+
+# --- Web scraping (Company Brochure Generator) ---
 requests
-google-generativeai
 beautifulsoup4
 lxml
-python-dotenv
-streamlit
+
+# --- PDF / Markdown export ---
 markdown
 reportlab
 markdown2
