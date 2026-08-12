@@ -14,6 +14,9 @@ import re
 
 # Load environment variables
 load_dotenv()
+# Local, uncommitted secrets (e.g. SAM_API_KEY); values here win over .env.
+# Resolved next to this file so it works no matter which directory you run from.
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env.local"), override=True)
 
 # System prompt for brochure generation (shared constant)
 SYSTEM_PROMPT = """You are a professional marketing copywriter that creates detailed, 
